@@ -1,40 +1,44 @@
 /*
-psql -U username -d myDataBase -a -f myInsertFile
+psql -U username -d myDataBase -a -f myFile
 */
 do $$
 BEGIN
-/*
+  /*
 IF NOT EXISTS( SELECT 1 FROM information_schema.columns 
            WHERE table_name='res_partner' and column_name='id_8') THEN
 */
 
---   alter table res_partner add column id_8 integer ;
-/*
+  --   alter table res_partner add column id_8 integer ;
+  /*
 END IF
 */
 
-/*
+  /*
 IF NOT EXISTS( SELECT 1 FROM information_schema.columns 
            WHERE table_name='res_partner' and column_name='id_10') THEN
 */
---   alter table res_partner add column id_10 integer ;
-/*
+  --   alter table res_partner add column id_10 integer ;
+  /*
 END IF
 */
 
---   alter table res_partner add column country character varying ;
---   alter table res_partner add column state character varying ;
---   alter table res_partner add column gst character varying(10) ;
+  --   alter table res_partner add column country character varying ;
+  --   alter table res_partner add column state character varying ;
+  --   alter table res_partner add column gst character varying(10) ;
 
-DROP table if exists res_partner_temp ;
+  DROP table if exists res_partner_temp
+  ;
 
-CREATE TABLE res_partner_temp
-(
-  name character varying,
-  company_id integer,
-  comment text, -- Notes
-  website character varying, -- Website
-  create_date timestamp without time zone, -- Created on
+  CREATE TABLE res_partner_temp
+  (
+    name character varying,
+    company_id integer,
+    comment text,
+    -- Notes
+    website character varying,
+    -- Website
+    create_date timestamp
+    without time zone, -- Created on
   color integer, -- Color Index
   active boolean, -- Active
   street character varying, -- Street
@@ -91,53 +95,64 @@ CREATE TABLE res_partner_temp
   sale_warn character varying , -- Sales Order
   purchase_warn character varying -- Purchase Order
 )
-WITH (
+    WITH
+    (
   OIDS=FALSE
 );
-ALTER TABLE res_partner_temp
+    ALTER TABLE res_partner_temp
   OWNER TO odoo;
 
-/*
+  /*
 create table res_partner_temp (like res_partner) ;
 */
 
-   alter table res_partner_temp add column id_8 integer ;
-   alter table res_partner_temp add column id_10 integer ;
-   alter table res_partner_temp add column country character varying ;
-   alter table res_partner_temp add column state character varying ;
-   alter table res_partner_temp add column gst character varying ;
+  alter table res_partner_temp add column id_8 integer ;
+  alter table res_partner_temp add column id_10 integer ;
+  alter table res_partner_temp add column country character varying ;
+  alter table res_partner_temp add column state character varying ;
+  alter table res_partner_temp add column gst character varying ;
 
 
-COPY res_partner_temp(name, company_id, active, city, commercial_partner_id, country_id, 
+COPY res_partner_temp
+  (name, company_id, active, city, commercial_partner_id, country_id, 
    create_date, create_uid, credit_limit, customer, DATE, debit_limit, display_name, email, 
    employee, fax, gst, is_company, lang, message_last_post, mobile, 
    notify_email, opt_out, parent_id, phone, ref, state_id, street, street2, supplier, 
    title, type, tz, user_id, vat, website, write_date, write_uid, zip, id_8, id_10,  country, state)
-   from '/home/cjpl-admin/warehouse/res_partner.csv' 
-   with (FORMAT CSV , DELIMITER ';' , HEADER TRUE ) ;        
+   from '/home/cjpl-admin/warehouse/res_partner.csv'
+  with
+  (FORMAT CSV , DELIMITER ';' , HEADER TRUE ) ;
 
-update res_partner_temp
+  update res_partner_temp
+set state_id = NULL
+  ;
+
+  update res_partner_temp
 set state_id = b.id 
 from res_country_state b 
-where res_partner_temp.state = b.name ;
+where lower(res_partner_temp.state) = lower(b.name)
+  ;
 
-update res_partner_temp
+  update res_partner_temp
 set country_id = b.id 
 from res_country b 
-where res_partner_temp.country = b.name ;
+where res_partner_temp.country = b.name
+  ;
 
-insert into res_partner (name, company_id, active, city, commercial_partner_id, country_id, 
-   create_date, create_uid, credit_limit, customer, DATE, debit_limit, display_name, email, 
-   employee, fax, gst, is_company, lang, message_last_post, mobile, 
-   opt_out, parent_id, phone, ref, state_id, street, street2, supplier, 
-   title, type, tz, vat, website, write_date, zip, id_8, id_10, notify_email, picking_warn, 
-   invoice_warn,  sale_warn, purchase_warn)
-   select name, company_id, active, city, commercial_partner_id, country_id, 
-   create_date, create_uid, credit_limit, customer, DATE, debit_limit, display_name, email, 
-   employee, fax, gst, is_company, lang, message_last_post, mobile, 
-   opt_out, parent_id, phone, ref, state_id, street, street2, supplier, 
-   title, type, tz, vat, website, write_date, zip, id_8, id_10, 'always', 'no-message',
-   'no-message','no-message','no-message'
-   from res_partner_temp ;
-END
+  insert into res_partner
+    (name, company_id, active, city, country_id,
+    create_date, credit_limit, customer, DATE, debit_limit, display_name, email,
+    employee, fax, gst, is_company, lang, message_last_post, mobile,
+    opt_out, parent_id, phone, ref, state_id, street, street2, supplier,
+    type, tz, vat, website, write_date, zip, id_8, id_10, notify_email, picking_warn,
+    invoice_warn, sale_warn, purchase_warn )
+  select name, 1, active, city, country_id,
+    create_date, credit_limit, customer, DATE, debit_limit, display_name, email,
+    employee, fax, gst, is_company, lang, message_last_post, mobile,
+    opt_out, parent_id, phone, ref, state_id, street, street2, supplier,
+    type, tz, vat, website, write_date, zip, id_8, id_10, 'always', 'no-message',
+    'no-message', 'no-message', 'no-message'
+  from res_partner_temp
+  ;
+  END
 $$
