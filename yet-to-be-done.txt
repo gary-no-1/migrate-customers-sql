@@ -1,0 +1,6 @@
+transfer new titles to od10
+transfer title_id from od8 to od10
+transfer sales person
+transfer customers which have parent_id
+
+transfer only customers which have been added new
