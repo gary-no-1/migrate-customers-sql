@@ -1,4 +1,24 @@
- 
+CREATE OR REPLACE FUNCTION f_add_col (_tbl regclass, _col text, _type regtype)
+   RETURNS bool
+   AS $func$
+BEGIN
+-- https://stackoverflow.com/questions/12597465/how-to-add-column-if-not-exists-on-postgresql
+   IF EXISTS (
+         SELECT
+            1
+         FROM
+            pg_attribute
+         WHERE
+            attrelid = _tbl AND attname = _col AND NOT attisdropped) THEN
+         RETURN FALSE;
+   ELSE
+      EXECUTE format('ALTER TABLE %s ADD COLUMN %I %s', _tbl, _col, _type);
+      RETURN TRUE;
+
+   END IF;
+END
+$func$
+LANGUAGE plpgsql; 
  
 
 DO $$
@@ -6,23 +26,23 @@ DO $$
 psql -U username -d myDataBase -a -f myFile
  */
 BEGIN
-   SELECT
+   PERFORM
       f_add_col ('res_partner',
          'id_8',
          'int');
-   SELECT
+   PERFORM
       f_add_col ('res_partner',
          'id_10',
          'int');
-   SELECT
+   PERFORM
       f_add_col ('res_partner',
          'country',
          'character varying');
-   SELECT
+   PERFORM
       f_add_col ('res_partner',
          'state',
          'character varying');
-   SELECT
+   PERFORM
       f_add_col ('res_partner',
          'gst',
          'character varying');
@@ -100,6 +120,10 @@ BEGIN
       ALTER TABLE res_partner_temp
          ADD COLUMN id_10 integer;
       ALTER TABLE res_partner_temp
+         ADD COLUMN id_8_parent integer;
+      ALTER TABLE res_partner_temp
+         ADD COLUMN id_10_parent integer;
+      ALTER TABLE res_partner_temp
          ADD COLUMN country character varying;
       ALTER TABLE res_partner_temp
          ADD COLUMN state character varying;
@@ -146,6 +170,8 @@ BEGIN
          zip,
          id_8,
          id_10,
+         id_8_parent,
+         id_10_parent,
          country,
          state)
    FROM
@@ -174,7 +200,7 @@ BEGIN
          res_country b
       WHERE
          res_partner_temp.country = b.name;
-      INSERT INTO res_partner (name, company_id, active, city, country_id, create_date, credit_limit, customer, DATE, debit_limit, display_name, email, employee, fax, gst, is_company, lang, message_last_post, mobile, opt_out, parent_id, phone, ref, state_id, street, street2, supplier, TYPE, tz, vat, website, write_date, zip, id_8, id_10, notify_email, picking_warn, invoice_warn, sale_warn, purchase_warn)
+      INSERT INTO res_partner (name, company_id, active, city, country_id, create_date, credit_limit, customer, DATE, debit_limit, display_name, email, employee, fax, gst, is_company, lang, message_last_post, mobile, opt_out, parent_id, phone, ref, state_id, street, street2, supplier, TYPE, tz, vat, website, write_date, zip, id_8, id_10, id_8_parent, id_10_parent, notify_email, picking_warn, invoice_warn, sale_warn, purchase_warn)
    SELECT
       name,
       1,
@@ -230,23 +256,4 @@ copy (SELECT a.name, a.id_8 , a.id_10
 
       END $$;
 
-CREATE OR REPLACE FUNCTION f_add_col (_tbl regclass, _col text, _type regtype)
-   RETURNS bool
-   AS $func$
-BEGIN
--- https://stackoverflow.com/questions/12597465/how-to-add-column-if-not-exists-on-postgresql
-   IF EXISTS (
-         SELECT
-            1
-         FROM
-            pg_attribute
-         WHERE
-            attrelid = _tbl AND attname = _col AND NOT attisdropped) THEN
-         RETURN FALSE;
-   ELSE
-      EXECUTE format('ALTER TABLE %s ADD COLUMN %I %s', _tbl, _col, _type);
-      RETURN TRUE;
-   END IF;
-END
-$func$
-LANGUAGE plpgsql;
+
